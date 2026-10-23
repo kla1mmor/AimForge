@@ -23,7 +23,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install zig (cross compiler)
-        run: pip install ziglang==0.17.0
+        run: pip install ziglang==0.16.0
 
       - name: Build
         run: sh build_windows.sh

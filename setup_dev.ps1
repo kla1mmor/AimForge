@@ -41,7 +41,8 @@ try {
     if (Has node) { Ok ("node: " + (node --version)) }
 
     Say '2/5 Компилятор zig'
-    & $py -m pip install --user --disable-pip-version-check -q ziglang==0.17.0
+    & $py -m pip install --user --disable-pip-version-check -q ziglang==0.16.0
+    if ($LASTEXITCODE -ne 0) { throw 'pip не смог установить ziglang.' }
     Ok ("zig: " + (& $py -m ziglang version))
 
     Say '3/5 Репозиторий в этой папке'
@@ -55,7 +56,7 @@ try {
     # Твои aimforge_*.cfg / *.csv, AimForge.exe и server\admin_token.txt не трогаются (они в .gitignore).
     git checkout -f -B main origin/main
     git branch --set-upstream-to=origin/main main | Out-Null
-    git submodule update --init --recursive
+    git submodule update --init --recursive --depth 1
     if (-not (git config user.name)) { git config user.name 'kla1mmor' }
     if (-not (git config user.email)) { git config user.email 'alikhan.tok@gmail.com' }
     Ok ('ветка ' + (git rev-parse --abbrev-ref HEAD) + ' @ ' + (git rev-parse --short HEAD))

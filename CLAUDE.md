@@ -10,7 +10,7 @@ Aim trainer for Windows (C + raylib 5.5, OpenGL 3.3) with a Cloudflare leaderboa
 
 ## Dev setup on the owner's PC (Windows, Claude Desktop → Code tab → Local)
 - This repo lives directly in the game folder `C:\Files alikhan\vibecoding\AimForge`; game data next to it (`AimForge.exe`, `aimforge_*.cfg/csv`, `server/admin_token.txt`) is gitignored.
-- First-time setup: `setup.bat` (runs `setup_dev.ps1`: installs Git/Python/Node via winget if missing, `pip install ziglang==0.17.0`, turns the folder into the repo, inits the raylib submodule, builds and copies the exe).
+- First-time setup: `setup.bat` (runs `setup_dev.ps1`: installs Git/Python/Node via winget if missing, `pip install ziglang==0.16.0`, turns the folder into the repo, inits the raylib submodule, builds and copies the exe).
 - Build: `sh build_windows.sh` (Git Bash) or `build.bat` (also copies `build\win\AimForge.exe` → `.\AimForge.exe`; close the game first — the exe is locked while running).
 - Test for real: run `.\AimForge.exe` (fullscreen on a 1920×1200 monitor). Check Alt+Tab, Win key, second virtual desktop, clicks after switching back.
 
