@@ -1,4 +1,4 @@
-AimForge 1.2 — тренажёр аима (Windows, отдельный .exe)
+AimForge 1.2.1 — тренажёр аима (Windows, отдельный .exe)
 Полное руководство: USER_GUIDE.md (рядом с программой) или https://github.com/kla1mmor/AimForge/blob/main/docs/USER_GUIDE.md
 ====================================================
 

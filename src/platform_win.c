@@ -31,7 +31,17 @@ static LONG    g_abs_x = -1, g_abs_y = -1;
 static char    g_info[128] = "";
 static bool    g_clipped = false;
 
-static void release_clip(void) { if (g_clipped) { ClipCursor(NULL); g_clipped = false; } }
+static RECT g_clip_rect;
+static void release_clip(void)
+{
+    // Also release a clip that still matches ours even if our flag says otherwise
+    // (focus can be lost between messages, e.g. Win key / Alt+Tab / Ctrl+Alt+Del).
+    RECT cur;
+    if (g_clipped || (GetClipCursor(&cur) && cur.left == g_clip_rect.left && cur.top == g_clip_rect.top &&
+                      cur.right == g_clip_rect.right && cur.bottom == g_clip_rect.bottom &&
+                      cur.right - cur.left <= 2)) ClipCursor(NULL);
+    g_clipped = false;
+}
 
 static void push_evt(int dx, int dy, unsigned short btn)
 {
@@ -63,6 +73,7 @@ static void apply_clip(void)
     RECT cr = { c.x, c.y, c.x + 1, c.y + 1 };
     SetCursorPos(c.x, c.y);
     ClipCursor(&cr);
+    g_clip_rect = cr;
     g_clipped = true;
 }
 
@@ -106,7 +117,7 @@ static LRESULT CALLBACK aim_wndproc(HWND h, UINT m, WPARAM w, LPARAM l)
     case WM_ACTIVATEAPP:
     case WM_KILLFOCUS:
     case WM_CAPTURECHANGED:
-        if (m != WM_ACTIVATEAPP || !w) release_clip();
+        if (m != WM_ACTIVATEAPP || !w) { release_clip(); if (m != WM_CAPTURECHANGED) g_lock = false; }
         break;
     case WM_SIZE:
     case WM_MOVE:
@@ -198,7 +209,12 @@ void plat_frame(bool focused)
     static bool was_active = true;
     bool act = focused && is_active();
     if (g_lock && act && !was_active) apply_clip();
-    if (!act && was_active) release_clip();
+    if (!act) {
+        if (was_active) release_clip();
+        else if (g_clipped) release_clip();
+        // never keep the cursor hidden for other apps
+        if (g_lock) { g_lock = false; SetCursor(LoadCursor(NULL, IDC_ARROW)); }
+    }
     was_active = act;
 }
 

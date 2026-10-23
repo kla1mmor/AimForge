@@ -18,6 +18,7 @@ typedef struct {
     bool    blocked;                 // input consumed by a modal
 } UIState;
 extern UIState ui;
+extern bool ui_inj_press, ui_inj_release;   // set before ui_begin from raw mouse events
 
 typedef struct { float y, target, content; } Scroll;
 

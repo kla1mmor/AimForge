@@ -19,7 +19,7 @@
 #include "online.h"
 
 #define APP_NAME "AimForge"
-#define APP_VER  "1.2"
+#define APP_VER  "1.2.1"
 
 typedef enum { PAGE_SCEN = 0, PAGE_PROG, PAGE_STATS, PAGE_SETTINGS, PAGE_EDIT, PAGE_LB } Page;
 enum { ST_MENU = 0, ST_GAME };
@@ -1420,6 +1420,7 @@ int main(int argc, char **argv)
         bool hidden = !A.demo && (IsWindowMinimized() || GetScreenWidth() < 64 || GetScreenHeight() < 64);
         if (!focused && A.st == ST_GAME && A.gs == GS_PLAY) pause_game();
         if (!focused && A.locked) set_lock(false);
+        if (!A.demo) display_focus(focused);
         if (focused && !A.was_focused) { plat_flush(); A.refocus_t = plat_time(); }
         A.was_focused = focused;
         if (hidden) {
@@ -1453,6 +1454,21 @@ int main(int argc, char **argv)
         float scale = fminf(GetScreenHeight() / 1080.0f, GetScreenWidth() / 1600.0f);
         if (scale < 0.55f) scale = 0.55f;
         if (fabsf(scale - A.last_scale) > 0.001f) { font_clear(); A.last_scale = scale; }
+
+        // A click shorter than one frame (fast clicks, touchpads, remote tools) leaves no trace in the
+        // polled button state; rebuild it from the raw event stream: press now, release next frame.
+        {
+            static bool release_next = false;
+            bool down = false, up_after_down = false, up = false;
+            for (int i = 0; i < n && A.raw; i++) {
+                if (ev[i].btn & PB_LDOWN) down = true;
+                if (ev[i].btn & PB_LUP) { if (down) up_after_down = true; else up = true; }
+            }
+            bool polled_press = IsMouseButtonPressed(MOUSE_BUTTON_LEFT), polled_release = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+            if (release_next) { if (!polled_release) ui_inj_release = true; release_next = false; }
+            if (down && !polled_press && !IsMouseButtonDown(MOUSE_BUTTON_LEFT)) { ui_inj_press = true; release_next = up_after_down; }
+            (void)up;
+        }
 
         // 3) update + render
         const char *shot = A.demo ? demo_control() : NULL;

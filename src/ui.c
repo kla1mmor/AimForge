@@ -7,6 +7,7 @@
 #include "fonts.h"
 
 UIState ui;
+bool ui_inj_press = false, ui_inj_release = false;
 
 Color C_BG      = { 11, 13, 18, 255 };
 Color C_SIDE    = { 15, 18, 25, 255 };
@@ -40,8 +41,11 @@ void ui_begin(float scale)
     ui.s = scale;
     ui.m = GetMousePosition();
     ui.down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
-    ui.pressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
-    ui.released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    ui.pressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || ui_inj_press;
+    ui.released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT) || ui_inj_release;
+    if (ui_inj_press) ui.down = true;
+    if (ui_inj_release && !ui_inj_press) ui.down = false;
+    ui_inj_press = ui_inj_release = false;
     ui.rpressed = IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
     ui.wheel = GetMouseWheelMove();
     ui.id = 0;

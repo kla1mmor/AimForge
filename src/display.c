@@ -2,6 +2,7 @@
 // with explicit resolution + refresh rate. VSync is never enabled.
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 #include "raylib.h"
@@ -9,6 +10,17 @@
 #include "settings.h"
 
 static char g_info[160] = "";
+static bool g_suspended = false;   // exclusive fullscreen temporarily left because of Alt+Tab
+
+// Highest refresh rate the monitor offers at w×h (0 if that resolution is not offered).
+static int max_rate(GLFWmonitor *m, int w, int h)
+{
+    int cnt = 0, best = 0;
+    const GLFWvidmode *vm = glfwGetVideoModes(m, &cnt);
+    for (int i = 0; i < cnt; i++)
+        if (vm[i].width == w && vm[i].height == h && vm[i].refreshRate > best) best = vm[i].refreshRate;
+    return best;
+}
 
 static GLFWmonitor *cur_monitor(void)
 {
@@ -80,6 +92,11 @@ void display_apply(void)
     if (!w) return;
     GLFWmonitor *m = cur_monitor();
 
+    // We handle focus loss ourselves (see display_focus); GLFW's auto-iconify only minimizes
+    // the window but keeps it a topmost monitor window, which the GPU driver can keep on screen.
+    glfwSetWindowAttrib(w, GLFW_AUTO_ICONIFY, GLFW_FALSE);
+    g_suspended = false;
+
     // Leave exclusive fullscreen first so the desktop mode is restored.
     if (glfwGetWindowMonitor(w)) {
         glfwSetWindowMonitor(w, NULL, 100, 100, 1280, 720, GLFW_DONT_CARE);
@@ -105,6 +122,17 @@ void display_apply(void)
         snprintf(g_info, sizeof(g_info), "Без рамки %d×%d · %d Гц (разрешение рабочего стола)", dw, dh, dhz);
         break;
     default: {
+        // "Полный экран": if the desktop is already in the requested mode, use a borderless window
+        // covering the monitor (Windows flips it directly, same latency as exclusive) — Alt+Tab,
+        // second monitors and virtual desktops then behave like with any normal window.
+        // Only a different resolution / refresh rate needs a real (exclusive) mode switch.
+        int want_hz = S.refresh > 0 ? S.refresh : max_rate(m, S.res_w, S.res_h);
+        if (S.res_w == dw && S.res_h == dh && (want_hz == 0 || abs(want_hz - dhz) <= 1)) {   // 59 vs 60 = same 59.94 Hz timing
+            glfwSetWindowAttrib(w, GLFW_DECORATED, GLFW_FALSE);
+            glfwSetWindowMonitor(w, NULL, mx, my, dw, dh, GLFW_DONT_CARE);
+            snprintf(g_info, sizeof(g_info), "Полный экран %d×%d · %d Гц (без смены видеорежима)", dw, dh, dhz);
+            break;
+        }
         int rate = S.refresh > 0 ? S.refresh : GLFW_DONT_CARE;   // DONT_CARE -> highest
         glfwSetWindowMonitor(w, m, 0, 0, S.res_w, S.res_h, rate);
         const GLFWvidmode *nm = glfwGetVideoMode(m);
@@ -115,6 +143,27 @@ void display_apply(void)
     glfwSwapInterval(0);   // VSync off, always
     glfwFocusWindow(w);
 }
+
+// Called every frame with the window focus state.
+// Exclusive fullscreen + focus lost: really leave it (restore the desktop mode, drop topmost),
+// then minimize. When the window is focused again, go back to fullscreen.
+void display_focus(bool focused)
+{
+    GLFWwindow *w = glfwGetCurrentContext();
+    if (!w) return;
+    if (!focused && glfwGetWindowMonitor(w)) {
+        GLFWmonitor *m = glfwGetWindowMonitor(w);
+        int mx = 0, my = 0; glfwGetMonitorPos(m, &mx, &my);
+        glfwSetWindowAttrib(w, GLFW_DECORATED, GLFW_TRUE);
+        glfwSetWindowMonitor(w, NULL, mx + 80, my + 80, 1280, 720, GLFW_DONT_CARE);
+        glfwIconifyWindow(w);
+        g_suspended = true;
+    } else if (focused && g_suspended && !glfwGetWindowAttrib(w, GLFW_ICONIFIED)) {
+        display_apply();
+    }
+}
+
+bool display_suspended(void) { return g_suspended; }
 
 const char *display_info(void) { return g_info; }
 

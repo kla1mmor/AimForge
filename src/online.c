@@ -8,7 +8,7 @@
 #include "settings.h"
 #include "platform.h"
 
-#define APP_VER "1.2"
+#define APP_VER "1.2.1"
 #define MAX_SCN 32
 #define PENDING_MAX 40
 
