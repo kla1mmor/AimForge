@@ -12,3 +12,8 @@ aimforge_scenarios.cfg
 aimforge_pending.txt
 *.png
 !docs/img/*.png
+
+# game files that live next to the sources on the dev PC
+/AimForge.exe
+/USER_GUIDE.md
+server/server_url.local.txt

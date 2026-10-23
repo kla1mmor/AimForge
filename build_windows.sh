@@ -3,10 +3,17 @@
 # On Windows you can run the same commands with `zig cc` directly (see README).
 set -e
 cd "$(dirname "$0")"
+# python: $PYTHON, else the first of python3 / python / py that really runs (Windows has a fake "python3" store alias)
+if [ -z "$PYTHON" ]; then
+  for c in python3 python py; do
+    if command -v "$c" >/dev/null 2>&1 && "$c" -c "import sys" >/dev/null 2>&1; then PYTHON=$c; break; fi
+  done
+fi
+PYTHON=${PYTHON:-python3}
 RL=${RAYLIB_SRC:-deps/raylib/src}
-ZIG=${ZIG:-"python3 -m ziglang"}
+ZIG=${ZIG:-"$PYTHON -m ziglang"}
 OUT=build/win
-python3 tools/embed_fonts.py
+"$PYTHON" tools/embed_fonts.py
 SERVER_DEF=""
 [ -f server/server_url.txt ] && SERVER_DEF="-DAIMFORGE_DEFAULT_SERVER=\"$(tr -d '\r\n' < server/server_url.txt)\""
 mkdir -p $OUT/rl
