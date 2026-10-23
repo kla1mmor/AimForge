@@ -1,4 +1,4 @@
-# AimForge — one-time developer setup on Windows.
+﻿# AimForge — one-time developer setup on Windows.
 # Turns this folder into the git repository (keeps your exe, settings, scores, admin token),
 # installs Git / Python / Node.js if missing, fetches the code + raylib, builds AimForge.exe.
 # Run:  double-click setup.bat   (or: powershell -ExecutionPolicy Bypass -File setup_dev.ps1)
