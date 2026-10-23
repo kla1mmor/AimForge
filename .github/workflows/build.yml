@@ -1,0 +1,48 @@
+name: Build AimForge.exe
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows-exe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install zig (cross compiler)
+        run: pip install ziglang==0.17.0
+
+      - name: Build
+        run: sh build_windows.sh
+
+      - name: Package
+        run: |
+          mkdir -p dist/AimForge/server
+          cp build/win/AimForge.exe README.txt docs/USER_GUIDE.md dist/AimForge/
+          cp server/worker.js server/schema.sql server/wrangler.toml server/deploy.mjs server/deploy.bat server/DEPLOY.txt dist/AimForge/server/
+          cd dist && zip -qr AimForge-win64.zip AimForge
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AimForge-win64
+          path: dist/AimForge-win64.zip
+
+      - name: Release (on version tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/AimForge-win64.zip
+          generate_release_notes: true

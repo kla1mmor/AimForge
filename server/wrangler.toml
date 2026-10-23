@@ -1,0 +1,12 @@
+name = "aimforge-leaderboard"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "aimforge"
+database_id = "6f931486-74ba-4fd9-912f-084df50adcaf"   # official AimForge leaderboard DB (deploy.mjs replaces it for your own server)
+
+# Optional: set an admin token to be able to ban cheaters:
+#   npx wrangler secret put ADMIN_TOKEN

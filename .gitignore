@@ -1,0 +1,14 @@
+build/
+dist/
+src/fonts_data.c
+server/node_modules/
+server/.wrangler/
+server/.dev.vars
+server/admin_token.txt
+server/package-lock.json
+aimforge_settings.cfg
+aimforge_scores.csv
+aimforge_scenarios.cfg
+aimforge_pending.txt
+*.png
+!docs/img/*.png
