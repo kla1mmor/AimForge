@@ -6,7 +6,7 @@ workers_dev = true
 # "New version available" notice in the game (GET /version). Bump LATEST_VERSION after each
 # release and redeploy. DOWNLOAD_URL is where the game's "Скачать" button and /download lead.
 [vars]
-LATEST_VERSION = "1.3"
+LATEST_VERSION = "1.4"
 DOWNLOAD_URL = "https://github.com/kla1mmor/AimForge/releases/latest"
 
 [[d1_databases]]
