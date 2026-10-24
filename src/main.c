@@ -17,9 +17,10 @@
 #include "display.h"
 #include "crosshair.h"
 #include "online.h"
+#include "playtime.h"
 
 #define APP_NAME "AimForge"
-#define APP_VER  "1.3"
+#define APP_VER  "1.4"
 
 typedef enum { PAGE_SCEN = 0, PAGE_PROG, PAGE_STATS, PAGE_SETTINGS, PAGE_EDIT, PAGE_LB } Page;
 enum { ST_MENU = 0, ST_GAME };
@@ -49,6 +50,7 @@ static struct {
     PFN_glFinish finish;
     bool   locked;
     bool   was_focused; double refocus_t;
+    double last_input;     // for play time: idle in the menu doesn't count
     // demo / self-test
     bool   demo; int frame;
     bool   demo_online;
@@ -388,7 +390,14 @@ static void draw_stats(Rectangle area)
     snprintf(b, sizeof(b), "%d", total);          tile((Rectangle){ x, y, tw, sc(88) }, "ВСЕГО ЗАХОДОВ", b, C_TXT);
     snprintf(b, sizeof(b), "%d / %d", played, SCN_COUNT); tile((Rectangle){ x + tw + sc(18), y, tw, sc(88) }, "СЦЕНАРИЕВ ОСВОЕНО", b, C_TXT);
     snprintf(b, sizeof(b), "%.0f мин", minutes);   tile((Rectangle){ x + 2 * (tw + sc(18)), y, tw, sc(88) }, "ВРЕМЯ ТРЕНИРОВОК", b, C_ACC);
-    y += sc(112);
+    y += sc(106);
+    playtime_fmt(playtime_total(), false, b, sizeof(b));   tile((Rectangle){ x, y, tw, sc(88) }, "ВСЕГО В ИГРЕ", b, C_ACC);
+    playtime_fmt(playtime_session(), true, b, sizeof(b));  tile((Rectangle){ x + tw + sc(18), y, tw, sc(88) }, "ЭТОТ СЕАНС", b, C_TXT);
+    snprintf(b, sizeof(b), "%d", playtime_sessions());    tile((Rectangle){ x + 2 * (tw + sc(18)), y, tw, sc(88) }, "СЕАНСОВ", b, C_TXT);
+    y += sc(106);
+    txt("Считается только активное время: окно игры открыто и ты играешь или двигаешь мышью (простой в меню дольше 5 минут не считается).",
+        x, y - sc(4), sc(13), C_FAINT, F_REG);
+    y += sc(30);
 
     float cols[] = { 0, 0.34f, 0.44f, 0.56f, 0.68f, 0.80f };
     const char *hd[] = { "СЦЕНАРИЙ", "ЗАХОДОВ", "РЕКОРД", "ПОСЛЕДНИЙ", "СРЕДНЕЕ (5)", "ТРЕНД" };
@@ -1408,6 +1417,7 @@ int main(int argc, char **argv)
     }
     online_init(A.dir);
     settings_save(A.p_settings);      // persist the freshly generated player id right away
+    if (!A.demo) playtime_init(A.dir);
     sfx_init();
     sfx_volume(S.volume);
 
@@ -1440,6 +1450,7 @@ int main(int argc, char **argv)
             // Minimized (exclusive fullscreen loses its window on Alt+Tab): don't render at 0x0,
             // don't touch fonts/viewport, just idle until restored.
             plat_drain(ev, 8192);
+            if (!A.demo) playtime_tick(plat_time(), false);
             plat_wait_until(plat_time() + 0.05);
             prev = plat_time(); next = prev;
             continue;
@@ -1460,6 +1471,17 @@ int main(int argc, char **argv)
         }
         if (A.demo && A.st == ST_GAME && A.gs == GS_PLAY) n = demo_bot(ev);
         plat_frame(IsWindowFocused());
+
+        // play time: focused, and a scenario running or any input in the last 5 minutes
+        if (!A.demo) {
+            Vector2 md = GetMouseDelta();
+            bool input = n > 0 || md.x != 0 || md.y != 0 || GetMouseWheelMove() != 0 ||
+                         IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
+            for (int k = KEY_SPACE; k <= KEY_KB_MENU && !input; k++) input = IsKeyDown(k);
+            if (input || A.last_input == 0) A.last_input = now;
+            bool playing = A.st == ST_GAME && A.gs == GS_PLAY;
+            playtime_tick(now, focused && (playing || now - A.last_input < 300));
+        }
 
         A.fps_acc += now - fps_t; fps_t = now; A.fps_n++;
         if (A.fps_acc >= 0.5) { A.fps = (float)(A.fps_n / A.fps_acc); A.ft_ms = (float)(A.fps_acc / A.fps_n * 1000.0); A.fps_acc = 0; A.fps_n = 0; }
@@ -1503,6 +1525,7 @@ int main(int argc, char **argv)
 
     settings_save(A.p_settings);
     scenarios_save(A.p_scen);
+    if (!A.demo) playtime_save();
     set_lock(false);
     online_shutdown();
     plat_shutdown();

@@ -10,6 +10,7 @@ aimforge_settings.cfg
 aimforge_scores.csv
 aimforge_scenarios.cfg
 aimforge_pending.txt
+aimforge_playtime.cfg
 *.png
 !docs/img/*.png
 

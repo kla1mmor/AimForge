@@ -8,7 +8,7 @@
 #include "settings.h"
 #include "platform.h"
 
-#define APP_VER "1.3"
+#define APP_VER "1.4"
 #define MAX_SCN 32
 #define PENDING_MAX 40
 #define VER_EVERY_S (6 * 3600.0)   // re-check for a new version while the game stays open
