@@ -19,7 +19,7 @@
 #include "online.h"
 
 #define APP_NAME "AimForge"
-#define APP_VER  "1.2.1"
+#define APP_VER  "1.3"
 
 typedef enum { PAGE_SCEN = 0, PAGE_PROG, PAGE_STATS, PAGE_SETTINGS, PAGE_EDIT, PAGE_LB } Page;
 enum { ST_MENU = 0, ST_GAME };
@@ -193,6 +193,7 @@ static void draw_sidebar(float W, float H)
     txt("AIM", lx + sc(44), ly + sc(2), sc(26), C_TXT, F_BOLD);
     txt("FORGE", lx + sc(44) + txt_w("AIM", sc(26), F_BOLD) + sc(4), ly + sc(2), sc(26), C_ACC, F_BOLD);
 
+    char b[96];
     const char *items[] = { "Сценарии", "Программы", "Рейтинг", "Статистика", "Настройки" };
     Page pages[] = { PAGE_SCEN, PAGE_PROG, PAGE_LB, PAGE_STATS, PAGE_SETTINGS };
     float y = sc(118);
@@ -208,10 +209,22 @@ static void draw_sidebar(float W, float H)
 
     // sensitivity summary
     float by = H - sc(232);
+
+    // new version on the server
+    const char *nv = online_new_version();
+    if (nv && !A.demo) {
+        Rectangle uc = { sc(16), by - sc(128), sw - sc(32), sc(116) };
+        rrect(uc, sc(10), C_CARD);
+        rrect_line(uc, sc(10), 1, fade(C_ACC, 0.5f));
+        txt("ДОСТУПНО ОБНОВЛЕНИЕ", uc.x + sc(16), uc.y + sc(14), sc(12), C_ACC, F_BOLD);
+        snprintf(b, sizeof(b), "Версия %s (у тебя %s)", nv, APP_VER);
+        txt(b, uc.x + sc(16), uc.y + sc(34), sc(14), C_TXT, F_SEMI);
+        if (ui_button((Rectangle){ uc.x + sc(12), uc.y + sc(62), uc.width - sc(24), sc(40) }, "Скачать", BTN_PRIMARY)) online_open_download();
+    }
+
     Rectangle card = { sc(16), by, sw - sc(32), sc(150) };
     rrect(card, sc(10), C_CARD);
     txt("ЧУВСТВИТЕЛЬНОСТЬ", card.x + sc(16), card.y + sc(14), sc(12), C_FAINT, F_BOLD);
-    char b[96];
     if (SENS_GAMES[S.sens_game].yaw > 0)
         snprintf(b, sizeof(b), "%s %.3g", SENS_GAMES[S.sens_game].name, S.sens);
     else snprintf(b, sizeof(b), "Напрямую");

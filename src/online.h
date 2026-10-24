@@ -58,5 +58,7 @@ bool        online_my_rank(int scn_idx, int *rank, int *total);
 LbBoard    *online_board(int scn_idx);
 int         online_pending_count(void);
 const char *online_server_url(void);                   // normalized
+const char *online_new_version(void);                  // newer version on the server, or NULL
+void        online_open_download(void);
 extern SubmitState ONL_SUBMIT;
 extern TestState   ONL_TEST;

@@ -9,6 +9,8 @@
 //                                            rank\tname\tscore\tacc\tkills\tat\tis_me
 //   GET  /summary?pid=                   -> ok\n then rows: scenario\truleset\trank\ttotal\tbest
 //   GET  /web[?s=&r=]                    -> HTML page with the leaderboards (to share with friends)
+//   GET  /version                        -> ok\t<latest version>\t<download url>   (vars LATEST_VERSION, DOWNLOAD_URL)
+//   GET  /download                       -> 302 to DOWNLOAD_URL (one link to give to friends)
 //   POST /admin/ban  pid=… or name=…  (Authorization: Bearer $ADMIN_TOKEN) — removes all scores, blocks the player
 
 const API_VERSION = "1";
@@ -20,6 +22,8 @@ const RULE_RE = /^[a-z0-9]{1,16}$/;
 const NAME_RE = /^[A-Za-zА-Яа-яЁё0-9 _\-.\[\]()!?#*+@~^]{2,16}$/u;
 const PID_COOLDOWN_S = 5;         // one submission per player every 5 s
 const IP_WINDOW_S = 600, IP_MAX = 40;
+const VER_RE = /^\d{1,3}(\.\d{1,3}){0,2}$/;
+const DEFAULT_DOWNLOAD = "https://github.com/kla1mmor/AimForge/releases/latest";
 
 const TEXT = { "content-type": "text/plain; charset=utf-8", "access-control-allow-origin": "*", "cache-control": "no-store" };
 const ok = (body) => new Response("ok" + (body ? "\t" + body : "") + "\n", { headers: TEXT });
@@ -209,6 +213,16 @@ async function ban(env, req) {
   return ok("banned");
 }
 
+function downloadUrl(env) {
+  const u = String(env.DOWNLOAD_URL || "").trim();
+  return /^https?:\/\/[^\s\t]+$/.test(u) ? u : DEFAULT_DOWNLOAD;
+}
+
+function version(env) {
+  const v = String(env.LATEST_VERSION || "").trim();
+  return ok([VER_RE.test(v) ? v : "", downloadUrl(env)].join("\t"));
+}
+
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 async function web(env, url) {
@@ -250,6 +264,8 @@ export default {
       if (req.method === "GET" && path === "/top") return await top(env, url);
       if (req.method === "GET" && path === "/summary") return await summary(env, url);
       if (req.method === "GET" && path === "/web") return await web(env, url);
+      if (req.method === "GET" && path === "/version") return version(env);
+      if (req.method === "GET" && path === "/download") return Response.redirect(downloadUrl(env), 302);
       if (req.method === "POST" && path === "/submit") return await submit(env, req);
       if (req.method === "POST" && path === "/register") {
         const p = await readForm(req);

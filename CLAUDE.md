@@ -6,6 +6,7 @@ Aim trainer for Windows (C + raylib 5.5, OpenGL 3.3) with a Cloudflare leaderboa
 - **Update `docs/USER_GUIDE.md` with every user-visible change**: the relevant section *and* the "История версий" entry. Bump the version in `src/main.c` (`APP_VER`), `src/online.c` (`APP_VER`), `res/aimforge.rc` (FILEVERSION/PRODUCTVERSION/strings), `res/aimforge.manifest` and the guide header.
 - Keep `README.txt` (ships in the zip) consistent with the guide.
 - Commit + push to `main`; tag `vX.Y` to publish a GitHub Release (CI builds the zip).
+- After the release is published, bump `LATEST_VERSION` in `server/wrangler.toml` `[vars]` and redeploy the worker: players see the in-game "Доступно обновление" card from `/version`. Don't bump it before the release exists (the button would lead to the old zip).
 - Changing a scenario's default params changes its leaderboard key (`scenario_ruleset`) → that board starts fresh. Mention it in the guide.
 
 ## Dev setup on the owner's PC (Windows, Claude Desktop → Code tab → Local)

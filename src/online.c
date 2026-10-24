@@ -8,9 +8,11 @@
 #include "settings.h"
 #include "platform.h"
 
-#define APP_VER "1.2.1"
+#define APP_VER "1.3"
 #define MAX_SCN 32
 #define PENDING_MAX 40
+#define VER_EVERY_S (6 * 3600.0)   // re-check for a new version while the game stays open
+#define VER_RETRY_S 300.0          // after a network error
 
 SubmitState ONL_SUBMIT;
 TestState   ONL_TEST;
@@ -24,6 +26,8 @@ static char   *g_pending[PENDING_MAX]; static int g_npend = 0;
 static int     g_pend_req = 0; static double g_pend_t = 0;
 static double  g_now = 0;
 static char    g_url[220];
+static int     g_ver_req = 0; static double g_ver_t = -1e9;
+static char    g_new_ver[24], g_dl_url[400];
 
 // ------------------------------------------------------------------ helpers
 static void hex(const unsigned char *b, int n, char *out)
@@ -227,6 +231,34 @@ void online_open_web(void)
     OpenURL(url);
 }
 
+// "1.2.1" vs "1.3": numeric, missing parts count as 0
+static int ver_cmp(const char *a, const char *b)
+{
+    for (int i = 0; i < 3; i++) {
+        int x = atoi(a), y = atoi(b);
+        if (x != y) return x < y ? -1 : 1;
+        a = strchr(a, '.'); b = strchr(b, '.');
+        a = a ? a + 1 : "0"; b = b ? b + 1 : "0";
+    }
+    return 0;
+}
+
+static void on_version(NetResult *r)
+{
+    g_ver_req = 0;
+    char *f[4], *rest, err[128];
+    if (r->status == 0 || r->status >= 500) { g_ver_t = g_now - VER_EVERY_S + VER_RETRY_S; return; }
+    if (parse_head(r->body, f, 4, &rest, err, sizeof(err)) < 3) return;   // old server without /version
+    bool newer = f[1][0] >= '0' && f[1][0] <= '9' && ver_cmp(f[1], APP_VER) > 0;
+    bool url_ok = !strncmp(f[2], "https://", 8) || !strncmp(f[2], "http://", 7);
+    if (newer && url_ok) { snprintf(g_new_ver, sizeof(g_new_ver), "%s", f[1]); snprintf(g_dl_url, sizeof(g_dl_url), "%s", f[2]); }
+    else g_new_ver[0] = 0;
+}
+
+const char *online_new_version(void) { return g_new_ver[0] ? g_new_ver : NULL; }
+
+void online_open_download(void) { if (g_new_ver[0]) OpenURL(g_dl_url); }
+
 LbBoard *online_board(int idx) { return (idx >= 0 && idx < MAX_SCN) ? &g_boards[idx] : NULL; }
 
 bool online_my_rank(int idx, int *rank, int *total)
@@ -349,6 +381,8 @@ void online_update(double now)
             else { ONL_TEST.status = NS_OK; snprintf(ONL_TEST.msg, sizeof(ONL_TEST.msg), "подключено · ник «%s» закреплён за тобой", S.nick); g_sum_dirty = true; }
         } else if (r.id == g_sum_req && r.id) {
             on_summary(&r);
+        } else if (r.id == g_ver_req && r.id) {
+            on_version(&r);
         } else {
             for (int i = 0; i < MAX_SCN; i++) if (g_boards[i].req == r.id && r.id) { on_board(&g_boards[i], &r); break; }
         }
@@ -365,4 +399,10 @@ void online_update(double now)
     }
     // "my ranks" summary only when something changed (start, submit, nickname) — saves D1 reads
     if (online_configured() && g_sum_dirty && !g_sum_req) { g_sum_dirty = false; online_fetch_summary(true); }
+    // new version check: at start and every few hours; needs online on, not a nick
+    if (S.online && online_server_url()[0] && !g_ver_req && now - g_ver_t > VER_EVERY_S) {
+        char url[300]; snprintf(url, sizeof(url), "%s/version?v=%s", online_server_url(), APP_VER);
+        g_ver_req = net_request("GET", url, NULL);
+        g_ver_t = now;
+    }
 }
